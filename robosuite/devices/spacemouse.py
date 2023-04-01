@@ -119,6 +119,11 @@ class SpaceMouse(Device):
         rot_sensitivity=1.0,
     ):
 
+        if product_id == 50741:  # Old SpaceMouse models
+            self.run = self._run_old_device
+        else:
+            self.run = self._run_new_device
+
         print("Opening SpaceMouse device")
         self.device = hid.device()
         self.device.open(vendor_id, product_id)  # SpaceMouse
@@ -167,6 +172,77 @@ class SpaceMouse(Device):
         print_command("ESC", "quit")
         print("")
 
+    def _run_old_device(self):
+        """Listener method that keeps pulling new messages for old SpaceMouses."""
+        while True:
+            d = self.device.read(13)
+            if d is not None and self._enabled:
+                if d[0] == 1:  ## readings from 6-DoF sensor
+                    self.y = convert(d[1], d[2])
+                    self.x = convert(d[3], d[4])
+                    self.z = convert(d[5], d[6]) * -1.0
+
+                elif d[0] == 2:
+                    self.roll = convert(d[1], d[2])
+                    self.pitch = convert(d[3], d[4])
+                    self.yaw = convert(d[5], d[6])
+
+                    self._control = [
+                        self.x,
+                        self.y,
+                        self.z,
+                        self.roll,
+                        self.pitch,
+                        self.yaw,
+                    ]
+
+                else:  ## readings from the side buttons
+                    if d[1] == 1:  # press left button
+                        self.single_click_and_hold = True
+
+                    elif d[1] == 0:  # release left button
+                        self.single_click_and_hold = False
+
+                    else:  # right button is for reset
+                        self._reset_state = 1
+                        self._enabled = False
+                        self._reset_internal_state()
+
+    def _run_new_device(self):
+        """Listener method that keeps pulling new messages for new SpaceMouses."""
+        while True:
+            d = self.device.read(13)
+            if d is not None and self._enabled:
+                if d[0] == 1:  ## readings from 6-DoF sensor
+                    self.y = convert(d[1], d[2])
+                    self.x = convert(d[3], d[4])
+                    self.z = convert(d[5], d[6]) * -1.0
+
+                    self.roll = convert(d[7], d[8])
+                    self.pitch = convert(d[9], d[10])
+                    self.yaw = convert(d[11], d[12])
+
+                    self._control = [
+                        self.x,
+                        self.y,
+                        self.z,
+                        self.roll,
+                        self.pitch,
+                        self.yaw,
+                    ]
+
+                else:  ## readings from the side buttons
+                    if d[1] == 1:  # press left button
+                        self.single_click_and_hold = True
+
+                    elif d[1] == 0:  # release left button
+                        self.single_click_and_hold = False
+
+                    else:  # right button is for reset
+                        self._reset_state = 1
+                        self._enabled = False
+                        self._reset_internal_state()
+
     def _reset_internal_state(self):
         """
         Resets internal state of controller, except for the reset signal.
@@ -213,77 +289,6 @@ class SpaceMouse(Device):
             grasp=self.control_gripper,
             reset=self._reset_state,
         )
-
-    def run(self):
-        """Listener method that keeps pulling new messages."""
-
-        t_last_click = -1
-
-        while True:
-            d = self.device.read(13)
-            if d is not None and self._enabled:
-
-                if macros.SPACEMOUSE_PRODUCT_ID == 50741:
-                    ## logic for older spacemouse model
-
-                    if d[0] == 1:  ## readings from 6-DoF sensor
-                        self.y = convert(d[1], d[2])
-                        self.x = convert(d[3], d[4])
-                        self.z = convert(d[5], d[6]) * -1.0
-
-                    elif d[0] == 2:
-
-                        self.roll = convert(d[1], d[2])
-                        self.pitch = convert(d[3], d[4])
-                        self.yaw = convert(d[5], d[6])
-
-                        self._control = [
-                            self.x,
-                            self.y,
-                            self.z,
-                            self.roll,
-                            self.pitch,
-                            self.yaw,
-                        ]
-                else:
-                    ## default logic for all other spacemouse models
-
-                    if d[0] == 1:  ## readings from 6-DoF sensor
-                        self.y = convert(d[1], d[2])
-                        self.x = convert(d[3], d[4])
-                        self.z = convert(d[5], d[6]) * -1.0
-
-                        self.roll = convert(d[7], d[8])
-                        self.pitch = convert(d[9], d[10])
-                        self.yaw = convert(d[11], d[12])
-
-                        self._control = [
-                            self.x,
-                            self.y,
-                            self.z,
-                            self.roll,
-                            self.pitch,
-                            self.yaw,
-                        ]
-
-                if d[0] == 3:  ## readings from the side buttons
-
-                    # press left button
-                    if d[1] == 1:
-                        t_click = time.time()
-                        elapsed_time = t_click - t_last_click
-                        t_last_click = t_click
-                        self.single_click_and_hold = True
-
-                    # release left button
-                    if d[1] == 0:
-                        self.single_click_and_hold = False
-
-                    # right button is for reset
-                    if d[1] == 2:
-                        self._reset_state = 1
-                        self._enabled = False
-                        self._reset_internal_state()
 
     @property
     def control(self):
