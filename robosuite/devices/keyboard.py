@@ -3,7 +3,7 @@ Driver class for Keyboard controller.
 """
 
 import numpy as np
-from pynput.keyboard import Controller, Key, Listener
+from pynput.keyboard import Key, Listener
 
 from robosuite.devices import Device
 from robosuite.utils.transform_utils import rotation_matrix
@@ -161,6 +161,10 @@ class Keyboard(Device):
             if key == Key.space:
                 self.grasp = not self.grasp  # toggle gripper
 
+            # user-commanded termination
+            elif key == Key.esc:
+                return False
+
             # user-commanded reset
             elif key.char == "q":
                 self._reset_state = 1
@@ -169,3 +173,12 @@ class Keyboard(Device):
 
         except AttributeError as e:
             pass
+
+    @property
+    def is_alive(self):
+        """
+        Returns True if a thread to monitor keyboard inputs is alive and False otherwise.
+        Returns:
+            bool: if a thread to monitor keyboard inputs is alive or not
+        """
+        return self.listener.is_alive()

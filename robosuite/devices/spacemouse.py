@@ -21,6 +21,7 @@ import time
 from collections import namedtuple
 
 import numpy as np
+from pynput.keyboard import Key, Listener
 
 try:
     import hid
@@ -157,6 +158,12 @@ class SpaceMouse(Device):
         self._reset_state = 0
         self.rotation = np.array([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0]])
         self._enabled = False
+
+        # Make a thread to listen to a keyboard
+        self.listener = Listener(on_press=None, on_release=self.on_release)
+
+        # Start listening
+        self.listener.start()
 
         # launch a new listener thread to listen to SpaceMouse
         self.thread = threading.Thread(target=self.run)
@@ -323,6 +330,24 @@ class SpaceMouse(Device):
             return 1.0
         return 0
 
+    def on_release(self, key):
+        """
+        Key handler for key releases.
+        Args:
+            key (str): key that was pressed
+        """
+
+        if key == Key.esc:
+            return False
+
+    @property
+    def is_alive(self):
+        """
+        Returns True if a thread to monitor keyboard inputs is alive and False otherwise
+        Returns:
+            bool: if a thread to monitor keyboard inputs is alive or not
+        """
+        return self.listener.is_alive()
 
 if __name__ == "__main__":
 

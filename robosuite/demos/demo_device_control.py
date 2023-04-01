@@ -177,7 +177,7 @@ if __name__ == "__main__":
     else:
         raise Exception("Invalid device choice: choose either 'keyboard' or 'spacemouse'.")
 
-    while True:
+    while device.is_alive:
         # Reset the environment
         obs = env.reset()
 
@@ -192,7 +192,7 @@ if __name__ == "__main__":
         # Initialize device control
         device.start_control()
 
-        while True:
+        while device.is_alive:
             # Set active robot
             active_robot = env.robots[0] if args.config == "bimanual" else env.robots[args.arm == "left"]
 
