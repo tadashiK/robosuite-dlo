@@ -126,7 +126,18 @@ class SpaceMouse(Device):
 
         print("Opening SpaceMouse device")
         self.device = hid.device()
-        self.device.open(vendor_id, product_id)  # SpaceMouse
+        try:
+            self.device.open(vendor_id, product_id)  # SpaceMouse
+        except OSError:
+            raise OSError("""
+                Connection to a 3D mouse device failed. This often happens when you have
+                no sudo previledge or wrong @product_id is provided. Please check if you
+                have sudo previledge and @product_id is correct. A list of 3Dconnexion's
+                product IDs can be found here:\n
+                \t https://devicehunt.com/view/type/usb/vendor/256F\n
+                Note that it uses the hexadecimal numeral system while @product_id requires
+                a product ID in the decimal numeral system.
+            """)
 
         self.pos_sensitivity = pos_sensitivity
         self.rot_sensitivity = rot_sensitivity
